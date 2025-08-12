@@ -194,7 +194,7 @@ combined_seurat <- RunPCA(combined_seurat, npcs = 30, verbose = F)
 combined_seurat <- RunUMAP(combined_seurat, reduction = "pca", dims = 1:12, verbose = F)
 ```
 
-Visualize UMAP before integration (Supplementary Figure S3A)
+Visualize UMAP before integration (Supplementary Figure S4A)
 ```{r int17,fig.align="center"}
 DimPlot(combined_seurat,reduction = "umap", cols = c("#BC3C29","#0072B5", "#E18727", "#20854E", "#7876B1", "#4b7284", "#ffc445", "#EE4C97", "#6A6767","#da6857","#7fb8da", "#EAAC6A", "#79B594", "#A8A7CD", "#6F99AD", "#FFDC91", "#f592c0", "#C5C6C7")) + plot_annotation(title = "Before integration")
 
@@ -218,7 +218,7 @@ combined_seurat <- RunUMAP(combined_seurat, reduction = "integrated.rpca", dims 
 
 ```
 
-Visualize UMAP after integration (Supplementary Figure S3B)
+Visualize UMAP after integration (Supplementary Figure S4B)
 ```{r int17,fig.align="center"}
 DimPlot(combined_seurat, reduction = "umap.rpca", cols = c("#BC3C29","#0072B5", "#E18727", "#20854E", "#7876B1", "#4b7284", "#ffc445", "#EE4C97", "#6A6767","#da6857","#7fb8da", "#EAAC6A", "#79B594", "#A8A7CD", "#6F99AD", "#FFDC91", "#f592c0", "#C5C6C7")) + plot_annotation(title = "After integration")
 ```
@@ -303,7 +303,7 @@ Add to labels to Seurat object:
 combined_seurat@meta.data$dice.main <- dice.main$pruned.labels
 ```
 
-Generate UMAP with labels: (Supplementary Figure S3C)
+Generate UMAP with labels: (Supplementary Figure S4C)
 ```{r}
 set.seed(123)
 combined_seurat <- SetIdent(combined_seurat, value = "dice.main")
@@ -696,13 +696,13 @@ combined_seurat@meta.data[Cells(all.Tcells), "cellID"] <- as.character(all.Tcell
 head(combined_seurat@meta.data)
 ```
 
-Generate UMAP with label of if cells came from DLBCL or rLN samples (Supplementary Figure S3D)
+Generate UMAP with label of if cells came from DLBCL or rLN samples (Supplementary Figure S4D)
 ```{r}
 combined_seurat <- SetIdent(combined_seurat, value = "Control_or_lymphoma")
 DimPlot(combined_seurat, cols = c("#6F99AD", "#BC3C29"))
 ```
 
-Generate UMAP with new cell labels (Supplementary Fig S3E)
+Generate UMAP with new cell labels (Supplementary Fig S4E)
 ```{r}
 combined_seurat <- SetIdent(combined_seurat, value = "cellID")
 DimPlot(combined_seurat, label = T)
@@ -714,7 +714,7 @@ Will look at expression of:
 * TGF-beta (TGFB1) - induces expression of CD103
 * Retinol dehydrogenase 10 (RDH10) and Aldehyde dehydrogenase family members (ALDH1A1, ALDH1A2, ALDH1A3) which is important in synthesis of retonic acid which has been found to play a role in TRM formation
 
-Look at expression of these genes in all cells between RLN vs DLBCL patients (Supplementary Fig. S4C)
+Look at expression of these genes in all cells between RLN vs DLBCL patients (Supplementary Fig. S5C)
 ```{r}
 combined_seurat <- SetIdent(combined_seurat, value = "Control_or_lymphoma")
 test_sign = list(c("LBCL", "RLN"))
@@ -723,7 +723,7 @@ VlnPlot(object = combined_seurat, features = c('CDH1','TGFB1', 'RDH10', 'ALDH1A1
 
 ```
 
-Look at expression of these genes in different cell types in RLN vs DLBCL patients (Supplementary Fig. S4D)
+Look at expression of these genes in different cell types in RLN vs DLBCL patients (Supplementary Fig. S5D)
 ```{r}
 combined_seurat <- SetIdent(combined_seurat, value = "cellID")
 
