@@ -83,11 +83,11 @@ Combined_T@meta.data$CD103[which(Combined_T@assays$integratedADT@data[".CD103",]
 #Set indent to CD103
 Combined_T <- SetIdent(Combined_T, value = "CD103")
 
-#generate UMAP showing positive cells (Fig. 6B)
+#generate UMAP showing positive cells (Fig. 5C)
 DimPlot(Combined_T, reduction = 'wnn.umap', label = F, cols = c("Neg" = "grey", "Pos" = "#DC0000B2"))
 ```
 
-Graph the proportion of CD103+ T cells per lymphoma entity (Fig. 5G)
+Graph the proportion of CD103+ T cells per lymphoma entity (Fig. 5H)
 ```{r}
 my_comparisons <- list(c("FL", "MCL")) #only one found to be significant
 dittoFreqPlot(Combined_T, "CD103",
@@ -204,7 +204,7 @@ Plot heatmap for Figure 5E
 
 ```
 
-Graph the proportion of each cluster per lymphoma entity (Figure 5H)
+Graph the proportion of each cluster per lymphoma entity (Figure 5I)
 ```{r}
 dittoBarPlot(Combined_T, "IdentI",group.by = "Entity", color.panel = c("#BC3C29","#0072B5", "#7fb8da", "#EAAC6A", "#79B594", "#A8A7CD", "#6F99AD", "#FFDC91", "#f592c0", "#E18727", "#20854E", "#7876B1", "#4b7284", "#ffc445", "#6A6767","#EE4C97","#da6857")) 
 
@@ -352,13 +352,117 @@ ggplot(CD103.T.df.scores,aes(x=IdentI,y=EX.score1,fill=IdentI))+geom_violin()+th
 
 ```
 
-Look at differences of genes of interest by violin plot (Supp Fig. S7A)
+#Look at TGFb signaling between clusters
+```{r}
+#load pathways
+TCR.sig <- getGmt("~/trms_dlbcl/internal_data/KEGG_T_CELL_RECEPTOR_SIGNALING_PATHWAY.gmt")
+TGF.sig <- getGmt("~/trms_dlbcl/internal_data/KEGG_TGF_BETA_SIGNALING_PATHWAY.gmt")
+
+# Extract gene sets into a named list
+tcr_list <- lapply(TCR.sig, geneIds)
+names(tcr_list) <- sapply(TCR.sig, function(x) x@setName)
+
+tgf_list <- lapply(TGF.sig, geneIds)
+names(tgf_list) <- sapply(TGF.sig, function(x) x@setName)
+
+TCR.sig <- list(tcr_list[["KEGG_T_CELL_RECEPTOR_SIGNALING_PATHWAY"]])
+TGF.sig <- list(tgf_list[["KEGG_TGF_BETA_SIGNALING_PATHWAY"]])
+```
+Enrichment score calculations:
+```{r}
+DefaultAssay(Combined_T) <- "RNA"
+#add score for each cell for TCR and TGFb signaling
+CD103.T <- AddModuleScore(CD103.T,
+                  features = TCR.sig,
+                  name="TCR.score")
+
+CD103.T <- AddModuleScore(CD103.T,
+                  features = TGF.sig,
+                  name="TGF.score")
+
+
+#pull out metatdata
+CD103.T.df.scores <- data.frame(CD103.T@meta.data)
+
+#subset for scores
+CD103.T.df.scores <- CD103.T.df.scores[, c("IdentI", "CD103", "TCR.score1", "TGF.score1", "Entity")]
+
+head(TCRsig.df)
+
+```
+
+Graphs for Figure 5G
+```{r}
+
+ggplot(CD103.T.df.scores,aes(x=IdentI,y=TCR.score1,fill=IdentI))+geom_violin(position = "dodge")+theme_classic()+ggtitle("TCR signaling pathway score")+scale_x_discrete("")+
+  theme(title = element_text(face = "plain",size = 12),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        legend.key.size = unit(0.5, 'cm'), #change legend key size
+        aspect.ratio = 1.2,
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.border = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title=element_text(hjust = 0.5))+ scale_fill_manual(values=c("#6A6767","#EE4C97", "#A8A7CD"))+
+  geom_boxplot(width=0.2,position=position_dodge(0.9), outlier.colour = "black", fill="white", outlier.size=0.2) + 
+  stat_compare_means(label = "p.format", method = "wilcox.test", comparisons = list(c("7", "8"), c("13", "8")),
+                      hide.ns = TRUE, label.y = 0.4, size = 3)  
+
+ggplot(CD103.T.df.scores,aes(x=IdentI,y=TGF.score1,fill=IdentI))+geom_violin(position = "dodge")+theme_classic()+ggtitle("TGFb signaling pathway score")+scale_x_discrete("")+
+  theme(title = element_text(face = "plain",size = 12),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        legend.key.size = unit(0.5, 'cm'), #change legend key size
+        aspect.ratio = 1.2,
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.border = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title=element_text(hjust = 0.5))+ scale_fill_manual(values=c("#6A6767","#EE4C97", "#A8A7CD"))+
+  geom_boxplot(width=0.2,position=position_dodge(0.9), outlier.colour = "black", fill="white", outlier.size=0.2) + 
+  stat_compare_means(label = "p.format", method = "wilcox.test", comparisons = list(c("7", "8"), c("13", "8")),
+                      hide.ns = TRUE, label.y = 0.2, size = 3)  
+
+```
+
+#Explore gene and protein differences between clusters expressing CD103 at protein level
+
+Look at differences of genes of interest by violin plot (Supp Fig. S8A)
 ```{r}
 VlnPlot(object = CD103.T, features = c('ITGAE', "CXCR6", "PDCD1", "TIGIT", "LAG3", "TOX", "HAVCR2", "GZMB", "GZMA", "PRF1", "IFNG", "CCL3", "CCL4", "CCL5", "SELL", "IL7R", "KLF2", "TCF7", "FOSB"), pt.size = F, cols = c("#6A6767","#EE4C97", "#A8A7CD"))
 ```
 
-Look at differences of proteins of interest by violin plot (Supp Fig. S7B)
+Look at differences of proteins of interest by violin plot (Supp Fig. S8B)
 ```{r}
 DefaultAssay(CD103.T) <- "integratedADT"
 VlnPlot(object = CD103.T, features = c('ITGAE', "CXCR6", "PDCD1", "TIGIT", "LAG3", "TOX", "HAVCR2", "GZMB", "GZMA", "PRF1", "IFNG", "CCL3", "CCL4", "CCL5", "SELL", "IL7R", "KLF2", "TCF7", "FOSB"), pt.size = F, cols = c("#6A6767","#EE4C97", "#A8A7CD"))
 ```
+
+#Specific cluster 7 analysis based on cells in that cluster that are CD103+ vs CD103-
+```{r}
+#subset cluster 7
+Combined_T <- SetIdent(Combined_T, value = "IdentI")
+Clus7 <- subset(Combined_T, idents = "7")
+#Set indent to CD103
+Clus7 <- SetIdent(Clus7, value = "CD103")
+#switch to RNA assay
+DefaultAssay(Clus7) <- "RNA"
+```
+
+Look at differences of genes of interest by violin plot (between CD103+ vs CD103- cells) for Supplemental Fig. S8C.
+```{r}
+comparisons <- list(c("Pos", "Neg"))
+VlnPlot(object = Clus7, features = c('ITGAE', "PDCD1", "LAG3", "TOX", "KLF2", "TCF7", "SELL", "IL7R"), pt.size = F, cols = c("#DC0000B2","#6A6767")) + stat_compare_means(comparisons = comparisons, method = "wilcox.test", label = "p.format")
+```
+
+Look at differences of proteins of interest by violin plot (between CD103+ vs CD103- cells) for Supplemental Fig. S8D.
+```{r}
+DefaultAssay(Clus7) <- "integratedADT"
+VlnPlot(object = Clus7, features = c(".CD4", ".CD8a", ".CD69", ".CD279", ".CD127", ".KLRG1"), pt.size = F, cols = c("#DC0000B2","#6A6767"))
++ stat_compare_means(comparisons = list(c("Pos", "Neg")) ,method = "wilcox.test", label = "p.format")
+
+```
+
