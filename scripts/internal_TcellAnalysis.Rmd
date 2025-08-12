@@ -312,7 +312,7 @@ Save just the CD103+ T cells seurat file for downstream analysis
 saveRDS(CD103Tcells, file = "~/trms_dlbcl/seurat_CD103Tcells.rds")
 ```
 
-Using Custom T cell markers/signatures based on literature/top genes to make heatmap for Supp fig S6A
+Using Custom T cell markers/signatures based on literature/top genes to make heatmap for Supp fig S5A
 ```{r}
 # make a empty data table
 corrected.cluster.means <- data.table()
@@ -353,7 +353,7 @@ corrected.comp.mat <- as.matrix(corrected.cluster.means[comp.func.data$Gene,])
 
 ```
 
-Plot heatmap (Supplementary Fig S4A)
+Plot heatmap (Supplementary Fig S5A)
 ```{r}
 (pheatmap(corrected.comp.mat, 
           scale = "row", 
@@ -368,12 +368,12 @@ Plot heatmap (Supplementary Fig S4A)
 
 ```
 
-Overlay of rLN or DLBCL samples over UMAP of ITGAE+ T cells (Supplementary Fig S4B)
+Overlay of rLN or DLBCL samples over UMAP of ITGAE+ T cells (Supplementary Fig S5B)
 ```{r}
 DimPlot(CD103Tcells, group.by = "Control_or_lymphoma", cols = c("#BC3C29FF","#6F99ADFF"))
 ```
 
-Now add a new column of general T cell phenotypes determined based on expression of genes in heatmap of Supplementary Figure S4A
+Now add a new column of general T cell phenotypes determined based on expression of genes in heatmap of Supplementary Figure S5A
 ```{r}
 #get number of clusters
 nclusters <- length(unique(CD103Tcells@meta.data$seurat_clusters))
@@ -554,6 +554,84 @@ ggplot(CD103.df.scores,aes(x=Control_or_lymphoma,y=Activation.score1,fill=Contro
 
 ```
 
+#Generate plots looking at TCR and TGFb signaling between CD103+ and CD103- T cells (Figure 2J-K)
+```{r}
+#load pathways
+TCR.sig <- getGmt("~/trms_dlbcl/internal_data/KEGG_T_CELL_RECEPTOR_SIGNALING_PATHWAY.gmt")
+TGF.sig <- getGmt("~/trms_dlbcl/internal_data/KEGG_TGF_BETA_SIGNALING_PATHWAY.gmt")
+
+# Extract gene sets into a named list
+tcr_list <- lapply(TCR.sig, geneIds)
+names(tcr_list) <- sapply(TCR.sig, function(x) x@setName)
+
+tgf_list <- lapply(TGF.sig, geneIds)
+names(tgf_list) <- sapply(TGF.sig, function(x) x@setName)
+
+TCR.sig <- list(tcr_list[["KEGG_T_CELL_RECEPTOR_SIGNALING_PATHWAY"]])
+TGF.sig <- list(tgf_list[["KEGG_TGF_BETA_SIGNALING_PATHWAY"]])
+
+```
+Enrichment score calculations:
+```{r}
+DefaultAssay(DLBCL_Tcells) <- "RNA"
+#add score for each cell for TCR and TGFb signaling
+DLBCL_Tcells <- AddModuleScore(DLBCL_Tcells,
+                  features = TCR.sig,
+                  name="TCR.score")
+
+DLBCL_Tcells <- AddModuleScore(DLBCL_Tcells,
+                  features = TGF.sig,
+                  name="TGF.score")
+
+```
+```{r}
+#pull out metatdata
+TCRsig.df <- data.frame(DLBCL_Tcells@meta.data)
+
+#subset for scores
+TCRsig.df <- TCRsig.df[, c("seurat_clusters", "CD103", "TCR.score1", "TGF.score1", "Control_or_lymphoma")]
+
+head(TCRsig.df)
+
+```
+Plot enrichment scores, separating by cells that come from LBCL vs rLN patients
+```{r}
+#plot TCRsig score
+ggplot(TCRsig.df,aes(x=CD103,y=TCR.score1,fill=CD103))+geom_violin(position = "dodge")+theme_classic()+ggtitle("TCR signaling pathway score")+scale_x_discrete("")+
+  facet_grid(. ~ Control_or_lymphoma) +
+  theme(title = element_text(face = "plain",size = 12),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        legend.key.size = unit(0.5, 'cm'), #change legend key size
+        aspect.ratio = 1.2,
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.border = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title=element_text(hjust = 0.5))+ scale_fill_manual(values=c("#6A6767", "#DC0000B2"))+
+  geom_boxplot(width=0.2,position=position_dodge(0.9), outlier.colour = "black", fill="white", outlier.size=0.2) + 
+  stat_compare_means(label = "p.format", method = "wilcox.test", comparisons = list(c("Pos", "Neg")),
+                      hide.ns = TRUE, label.y = 0.6, size = 3)
+#plot TGFb sig score
+ggplot(TCRsig.df,aes(x=CD103,y=TGF.score1,fill=CD103))+geom_violin(position = "dodge")+theme_classic()+ggtitle("TGF signaling pathway score")+scale_x_discrete("")+
+  facet_grid(. ~ Control_or_lymphoma) +
+  theme(title = element_text(face = "plain",size = 12),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        legend.key.size = unit(0.5, 'cm'), #change legend key size
+        aspect.ratio = 1.2,
+        axis.text.y = element_text(size = 10),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.border = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title=element_text(hjust = 0.5))+ scale_fill_manual(values=c("#6A6767", "#DC0000B2"))+
+  geom_boxplot(width=0.2,position=position_dodge(0.9), outlier.colour = "black", fill="white", outlier.size=0.2) + 
+  stat_compare_means(label = "p.format", method = "wilcox.test", comparisons = list(c("Pos", "Neg")),
+                      hide.ns = TRUE, label.y = 0.4, size = 3)
+
+```
 
 # Looking for a TRM-like cluster in DLBCL
 
